@@ -25,6 +25,35 @@ if not clickButton or not clickButton:IsA("TextButton") then
 	return
 end
 
+-- Configure a clear and consistent clickable area at runtime.
+clickButton.AnchorPoint = Vector2.new(0.5, 0.5)
+clickButton.Position = UDim2.fromScale(0.5, 0.62)
+clickButton.Size = UDim2.fromOffset(230, 230)
+clickButton.AutoButtonColor = true
+clickButton.Active = true
+clickButton.BackgroundColor3 = Color3.fromRGB(45, 156, 92)
+clickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+clickButton.Text = "CLICK"
+clickButton.TextScaled = true
+clickButton.Font = Enum.Font.GothamBlack
+
+local buttonCorner = clickButton:FindFirstChild("ButtonCorner")
+if not buttonCorner then
+	buttonCorner = Instance.new("UICorner")
+	buttonCorner.Name = "ButtonCorner"
+	buttonCorner.CornerRadius = UDim.new(1, 0)
+	buttonCorner.Parent = clickButton
+end
+
+local buttonStroke = clickButton:FindFirstChild("ButtonStroke")
+if not buttonStroke then
+	buttonStroke = Instance.new("UIStroke")
+	buttonStroke.Name = "ButtonStroke"
+	buttonStroke.Thickness = 3
+	buttonStroke.Color = Color3.fromRGB(220, 255, 220)
+	buttonStroke.Parent = clickButton
+end
+
 local originalSize = clickButton.Size
 local shrinkSize = UDim2.new(
 	originalSize.X.Scale * 0.93,

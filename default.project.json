@@ -13,7 +13,20 @@
     },
 
     "ServerScriptService": {
-      "$path": "src/ServerScriptService"
+      "ClickCurrencyHandler": {
+        "$path": "src/ServerScriptService/ClickCurrencyHandler.server.lua"
+      },
+      "InitServer": {
+        "$path": "src/server/main.server.lua"
+      }
+    },
+
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "InitClient": {
+          "$path": "src/client/main.client.lua"
+        }
+      }
     },
 
     "StarterGui": {
@@ -26,63 +39,16 @@
         "ClickButton": {
           "$className": "TextButton",
           "$properties": {
-            "AnchorPoint": [
-              0.5,
-              0.5
-            ],
-            "Position": [
-              0.5,
-              0,
-              0.62,
-              0
-            ],
-            "Size": [
-              0,
-              220,
-              0,
-              220
-            ],
             "Text": "CLICK",
-            "TextScaled": true,
-            "BackgroundColor3": [
-              0.2,
-              0.6,
-              0.35
-            ],
-            "TextColor3": [
-              1,
-              1,
-              1
-            ]
+            "TextScaled": true
           }
         },
         "CurrencyLabel": {
           "$className": "TextLabel",
           "$properties": {
-            "AnchorPoint": [
-              0.5,
-              0
-            ],
-            "Position": [
-              0.5,
-              0,
-              0.08,
-              0
-            ],
-            "Size": [
-              0,
-              320,
-              0,
-              64
-            ],
             "BackgroundTransparency": 1,
             "Text": "Currency: 0",
-            "TextScaled": true,
-            "TextColor3": [
-              1,
-              1,
-              1
-            ]
+            "TextScaled": true
           }
         },
         "ClickButtonScript": {
@@ -101,33 +67,12 @@
       "Baseplate": {
         "$className": "Part",
         "$properties": {
-          "Anchored": true,
-          "Color": [
-            0.38823,
-            0.37254,
-            0.38823
-          ],
-          "Locked": true,
-          "Position": [
-            0,
-            -10,
-            0
-          ],
-          "Size": [
-            512,
-            20,
-            512
-          ]
+          "Anchored": true
         }
       }
     },
     "Lighting": {
       "$properties": {
-        "Ambient": [
-          0,
-          0,
-          0
-        ],
         "Brightness": 2,
         "GlobalShadows": true,
         "Outlines": false,

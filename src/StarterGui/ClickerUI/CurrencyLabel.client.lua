@@ -21,6 +21,15 @@ if not currencyLabel or not currencyLabel:IsA("TextLabel") then
 	return
 end
 
+currencyLabel.AnchorPoint = Vector2.new(0.5, 0)
+currencyLabel.Position = UDim2.fromScale(0.5, 0.08)
+currencyLabel.Size = UDim2.fromOffset(360, 64)
+currencyLabel.BackgroundTransparency = 1
+currencyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+currencyLabel.TextStrokeTransparency = 0.5
+currencyLabel.TextScaled = true
+currencyLabel.Font = Enum.Font.GothamBold
+
 local leaderstats = localPlayer:WaitForChild("leaderstats", 10)
 if not leaderstats then
 	warn("[CurrencyLabel] leaderstats not found for local player.")
