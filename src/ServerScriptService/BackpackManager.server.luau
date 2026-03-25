@@ -1,6 +1,6 @@
 --!strict
 -- BackpackManager.server.luau
--- Handles selling current souls into spendable coins.
+-- Handles selling current souls into spendable coins with rank multiplier.
 
 local ReplicatedStorage   = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -13,6 +13,9 @@ local RollConfig = require(
 )
 local EconomyConfig = require(
 	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("EconomyConfig")
+)
+local RankUtils = require(
+	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RankUtils")
 )
 
 local Events              = ReplicatedStorage:WaitForChild("Events")
@@ -42,7 +45,9 @@ SellSoulsEvent.OnServerEvent:Connect(function(player: Player)
 		return
 	end
 
-	local coinsFromSouls = math.floor(pdata.souls * EconomyConfig.COINS_PER_SOUL)
+	-- Apply rank multiplier to coin conversion
+	local rankMultiplier = RankUtils.getMultiplier(pdata.rankIndex)
+	local coinsFromSouls = math.floor(pdata.souls * EconomyConfig.COINS_PER_SOUL * rankMultiplier)
 	pdata.coins += coinsFromSouls
 	pdata.souls = 0
 

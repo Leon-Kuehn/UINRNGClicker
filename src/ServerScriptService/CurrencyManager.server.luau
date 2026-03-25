@@ -2,6 +2,7 @@
 -- CurrencyManager.server.luau
 -- Handles the PlayerClick RemoteEvent and awards souls with:
 --   • Weapon rarity × weapon clickMultiplier stacking
+--   • Rank multiplier (global bonus)
 --   • Rebirth bonus  (+50 % per rebirth tier)
 --   • BonusZone multiplier (2×)
 --   • Critical hits  (5 % chance for 3× payout)
@@ -17,6 +18,9 @@ local RollConfig = require(
 )
 local EconomyConfig = require(
 	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("EconomyConfig")
+)
+local RankUtils = require(
+	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RankUtils")
 )
 
 local Events              = ReplicatedStorage:WaitForChild("Events")
@@ -41,6 +45,10 @@ PlayerClickEvent.OnServerEvent:Connect(function(player: Player)
 			* pdata.equippedWeapon.rarityMultiplier
 			* pdata.equippedWeapon.clickMultiplier
 	end
+
+	-- Rank multiplier (global bonus from rank progression)
+	local rankMultiplier = RankUtils.getMultiplier(pdata.rankIndex)
+	amount = amount * rankMultiplier
 
 	-- Rebirth bonus: each rebirth adds +50 % to the base payout.
 	-- Formula: amount × (1 + rebirths × 0.5)

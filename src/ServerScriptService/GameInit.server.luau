@@ -33,6 +33,7 @@ local InventoryStore = DataStoreService:GetDataStore("Inventory_v1")
 local SoulsStore     = DataStoreService:GetDataStore("Souls_v1")
 local ClicksStore    = DataStoreService:GetDataStore("TotalClicks_v1")
 local SoulsCapacityStore = DataStoreService:GetDataStore("SoulsCapacity_v1")
+local RankStore      = DataStoreService:GetDataStore("Rank_v1")
 
 -- ── Load ──────────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,14 @@ local function loadPlayer(player: Player)
 		pdata.inventory = invVal
 	end
 
+	-- Rank
+	local ok6, rankVal = pcall(function()
+		return RankStore:GetAsync(tostring(player.UserId))
+	end)
+	if ok6 and type(rankVal) == "number" then
+		pdata.rankIndex = math.max(1, math.floor(rankVal))
+	end
+
 	-- Sync initial state to client
 	UpdateCurrencyEvent:FireClient(
 		player,
@@ -119,6 +128,9 @@ local function savePlayer(player: Player)
 	pcall(function()
 		InventoryStore:SetAsync(tostring(player.UserId), pdata.inventory)
 	end)
+	pcall(function()
+		RankStore:SetAsync(tostring(player.UserId), pdata.rankIndex)
+	end)
 
 	PlayerData.remove(player)
 end
@@ -154,6 +166,9 @@ task.spawn(function()
 				end)
 				pcall(function()
 					InventoryStore:SetAsync(tostring(player.UserId), pdata.inventory)
+				end)
+				pcall(function()
+					RankStore:SetAsync(tostring(player.UserId), pdata.rankIndex)
 				end)
 			end
 		end

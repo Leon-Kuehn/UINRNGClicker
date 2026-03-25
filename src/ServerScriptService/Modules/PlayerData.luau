@@ -22,6 +22,7 @@ export type PlayerRecord = {
 	equippedWeapon : WeaponData?,
 	rebirths       : number,
 	activeZones    : { [string]: boolean },
+	rankIndex      : number,
 }
 
 local PlayerData = {}
@@ -47,6 +48,7 @@ function PlayerData.init(player: Player)
 		equippedWeapon  = nil,
 		rebirths        = 0,
 		activeZones     = {},
+		rankIndex       = 1,
 	}
 end
 
