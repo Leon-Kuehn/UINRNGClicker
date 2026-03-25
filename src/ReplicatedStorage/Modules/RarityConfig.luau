@@ -8,13 +8,15 @@
 local RarityConfig = {}
 
 RarityConfig.Rarities = {
-	{ name = "Common",    weight = 5000, color = Color3.fromRGB(180, 180, 180), multiplier = 1   },
-	{ name = "Uncommon",  weight = 2500, color = Color3.fromRGB( 98, 218,  98), multiplier = 2   },
-	{ name = "Rare",      weight = 1000, color = Color3.fromRGB( 85, 130, 255), multiplier = 5   },
-	{ name = "Epic",      weight =  300, color = Color3.fromRGB(163,  53, 228), multiplier = 15  },
-	{ name = "Legendary", weight =  150, color = Color3.fromRGB(255, 175,   0), multiplier = 50  },
-	{ name = "Mythic",    weight =   45, color = Color3.fromRGB(255,  70,  70), multiplier = 150 },
-	{ name = "Divine",    weight =    5, color = Color3.fromRGB(255, 255, 100), multiplier = 500 },
+	-- Dummy test distribution (total weight 10,000):
+	-- Common 55.0%, Uncommon 25.0%, Rare 12.0%, Epic 5.5%, Legendary 1.8%, Mythic 0.6%, Divine 0.1%
+	{ name = "Common",    weight = 5500, color = Color3.fromRGB(180, 180, 180), multiplier = 1.00 },
+	{ name = "Uncommon",  weight = 2500, color = Color3.fromRGB( 98, 218,  98), multiplier = 1.35 },
+	{ name = "Rare",      weight = 1200, color = Color3.fromRGB( 85, 130, 255), multiplier = 1.85 },
+	{ name = "Epic",      weight =  550, color = Color3.fromRGB(163,  53, 228), multiplier = 2.75 },
+	{ name = "Legendary", weight =  180, color = Color3.fromRGB(255, 175,   0), multiplier = 4.20 },
+	{ name = "Mythic",    weight =   60, color = Color3.fromRGB(255,  70,  70), multiplier = 6.50 },
+	{ name = "Divine",    weight =   10, color = Color3.fromRGB(255, 255, 100), multiplier = 10.0 },
 }
 
 -- Compute total weight and per-rarity chance percentage

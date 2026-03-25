@@ -1,6 +1,6 @@
 --!strict
 -- CurrencyManager.server.luau
--- Handles the PlayerClick RemoteEvent and awards coins with:
+-- Handles the PlayerClick RemoteEvent and awards souls with:
 --   • Weapon rarity × weapon clickMultiplier stacking
 --   • Rebirth bonus  (+50 % per rebirth tier)
 --   • BonusZone multiplier (2×)
@@ -12,21 +12,28 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerData = require(
 	ServerScriptService:WaitForChild("Modules"):WaitForChild("PlayerData")
 )
+local RollConfig = require(
+	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RollConfig")
+)
+local EconomyConfig = require(
+	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("EconomyConfig")
+)
 
 local Events              = ReplicatedStorage:WaitForChild("Events")
 local PlayerClickEvent    = Events:WaitForChild("PlayerClick")
 local UpdateCurrencyEvent = Events:WaitForChild("UpdateCurrency")
 
-local BASE_COINS      = 1
-local CRIT_CHANCE     = 0.05   -- 5 %
-local CRIT_MULTIPLIER = 3
-local BONUS_ZONE_MULT = 2      -- while inside a BonusZone part
-
 PlayerClickEvent.OnServerEvent:Connect(function(player: Player)
 	local pdata = PlayerData.get(player)
+	if not pdata then
+		PlayerData.init(player)
+		pdata = PlayerData.get(player)
+	end
 	if not pdata then return end
 
-	local amount: number = BASE_COINS
+	pdata.totalClicks += 1
+
+	local amount: number = EconomyConfig.SOULS_PER_TAP_BASE
 
 	-- Equipped weapon bonus
 	if pdata.equippedWeapon then
@@ -44,16 +51,36 @@ PlayerClickEvent.OnServerEvent:Connect(function(player: Player)
 
 	-- BonusZone multiplier
 	if pdata.activeZones["BonusZone"] then
-		amount = amount * BONUS_ZONE_MULT
+		amount = amount * EconomyConfig.BONUS_ZONE_SOULS_MULT
 	end
 
 	-- Critical hit
-	local critAmount: number? = nil
-	if math.random() < CRIT_CHANCE then
-		amount = amount * CRIT_MULTIPLIER
-		critAmount = math.floor(amount)
+	local critSouls: number? = nil
+	if math.random() < EconomyConfig.CRIT_CHANCE then
+		amount = amount * EconomyConfig.CRIT_MULTIPLIER
+		critSouls = math.floor(amount)
 	end
 
-	pdata.coins += math.floor(amount)
-	UpdateCurrencyEvent:FireClient(player, pdata.coins, critAmount)
+	local soulsGained = math.max(0, math.floor(amount))
+	local freeCapacity = math.max(0, pdata.soulsCapacity - pdata.souls)
+	soulsGained = math.clamp(soulsGained, 0, freeCapacity)
+	pdata.souls += soulsGained
+
+	if soulsGained <= 0 then
+		critSouls = nil
+	elseif critSouls then
+		critSouls = soulsGained
+	end
+
+	UpdateCurrencyEvent:FireClient(
+		player,
+		pdata.coins,
+		pdata.souls,
+		pdata.totalClicks,
+		RollConfig.getRollCost(pdata.totalRolls),
+		soulsGained,
+		critSouls,
+		pdata.soulsCapacity,
+		pdata.souls >= pdata.soulsCapacity
+	)
 end)

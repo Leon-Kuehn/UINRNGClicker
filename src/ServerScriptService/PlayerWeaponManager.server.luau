@@ -10,6 +10,9 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local PlayerData = require(
 	ServerScriptService:WaitForChild("Modules"):WaitForChild("PlayerData")
 )
+local RollConfig = require(
+	ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RollConfig")
+)
 
 local Events               = ReplicatedStorage:WaitForChild("Events")
 local EquipWeaponEvent     = Events:WaitForChild("EquipWeapon")
@@ -61,6 +64,16 @@ SellWeaponEvent.OnServerEvent:Connect(function(player: Player, index: number)
 	pdata.coins += coins
 	table.remove(pdata.inventory, index)
 
-	UpdateCurrencyEvent:FireClient(player, pdata.coins, nil)
+	UpdateCurrencyEvent:FireClient(
+		player,
+		pdata.coins,
+		pdata.souls,
+		pdata.totalClicks,
+		RollConfig.getRollCost(pdata.totalRolls),
+		0,
+		nil,
+		pdata.soulsCapacity,
+		pdata.souls >= pdata.soulsCapacity
+	)
 	UpdateInventoryEvent:FireClient(player, pdata.inventory, pdata.equippedWeapon)
 end)

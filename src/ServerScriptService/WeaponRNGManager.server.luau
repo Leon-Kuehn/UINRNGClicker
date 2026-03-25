@@ -13,25 +13,37 @@ local PlayerData   = require(ServerScriptService:WaitForChild("Modules"):WaitFor
 local RarityConfig = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RarityConfig"))
 local WeaponConfig = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("WeaponConfig"))
 local RNGUtils     = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RNGUtils"))
+local RollConfig   = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("RollConfig"))
 
 local Events               = ReplicatedStorage:WaitForChild("Events")
 local RollWeaponEvent      = Events:WaitForChild("RollWeapon")
 local UpdateCurrencyEvent  = Events:WaitForChild("UpdateCurrency")
 local UpdateInventoryEvent = Events:WaitForChild("UpdateInventory")
 
-local ROLL_COST = 50  -- coins deducted per roll
-
 RollWeaponEvent.OnServerEvent:Connect(function(player: Player)
 	local pdata = PlayerData.get(player)
 	if not pdata then return end
 
+	local rollCost = RollConfig.getRollCost(pdata.totalRolls)
+
 	-- Insufficient funds — fire UpdateCurrency so the UI stays in sync
-	if pdata.coins < ROLL_COST then
-		UpdateCurrencyEvent:FireClient(player, pdata.coins, nil)
+	if pdata.coins < rollCost then
+		UpdateCurrencyEvent:FireClient(
+			player,
+			pdata.coins,
+			pdata.souls,
+			pdata.totalClicks,
+			rollCost,
+			0,
+			nil,
+			pdata.soulsCapacity,
+			pdata.souls >= pdata.soulsCapacity
+		)
 		return
 	end
 
-	pdata.coins -= ROLL_COST
+	pdata.coins -= rollCost
+	pdata.totalRolls += 1
 
 	-- Step 1: pick a rarity by weight
 	local rarity = RNGUtils.weightedRandom(RarityConfig.Rarities)
@@ -55,6 +67,17 @@ RollWeaponEvent.OnServerEvent:Connect(function(player: Player)
 
 	table.insert(pdata.inventory, newWeapon)
 
-	UpdateCurrencyEvent:FireClient(player, pdata.coins, nil)
+	local nextRollCost = RollConfig.getRollCost(pdata.totalRolls)
+	UpdateCurrencyEvent:FireClient(
+		player,
+		pdata.coins,
+		pdata.souls,
+		pdata.totalClicks,
+		nextRollCost,
+		0,
+		nil,
+		pdata.soulsCapacity,
+		pdata.souls >= pdata.soulsCapacity
+	)
 	UpdateInventoryEvent:FireClient(player, pdata.inventory, pdata.equippedWeapon)
 end)

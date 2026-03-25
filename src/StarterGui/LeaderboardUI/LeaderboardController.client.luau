@@ -15,6 +15,10 @@ local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = playerGui:WaitForChild("LeaderboardUI")
 
+-- Temporarily disabled by design request.
+screenGui.Enabled = false
+return
+
 -- ── Panel ─────────────────────────────────────────────────────────────────────
 
 local panel = Instance.new("Frame")

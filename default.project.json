@@ -14,6 +14,8 @@
         "RollWeapon":        { "$className": "RemoteEvent" },
         "EquipWeapon":       { "$className": "RemoteEvent" },
         "SellWeapon":        { "$className": "RemoteEvent" },
+        "SellSouls":         { "$className": "RemoteEvent" },
+        "UpgradeBackpack":   { "$className": "RemoteEvent" },
         "UpdateCurrency":    { "$className": "RemoteEvent" },
         "UpdateInventory":   { "$className": "RemoteEvent" },
         "UpdateLeaderboard": { "$className": "RemoteEvent" },
