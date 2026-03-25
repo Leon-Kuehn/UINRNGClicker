@@ -1,0 +1,1177 @@
+<roblox version="4">
+  <Item class="ReplicatedStorage" referent="0">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="RemoteEvent" referent="1">
+      <Properties>
+        <string name="Name">PlayerClick</string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="2">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Script" referent="3">
+      <Properties>
+        <string name="Name">ClickCurrencyHandler</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local PLAYER_CLICK_EVENT_NAME = "PlayerClick"
+local CURRENCY_STAT_NAME = "Currency"
+
+local DEFAULT_BASE_VALUE = 1
+local DEFAULT_CRIT_CHANCE = 0.1
+local DEFAULT_CRIT_MULTIPLIER = 10
+
+local playerClickEvent = ReplicatedStorage:WaitForChild(PLAYER_CLICK_EVENT_NAME)
+if not playerClickEvent:IsA("RemoteEvent") then
+	warn("[ClickCurrencyHandler] ReplicatedStorage.PlayerClick is not a RemoteEvent.")
+	return
+end
+
+local function getOrCreateNumberValue(parent: Instance, name: string, defaultValue: number): NumberValue
+	local existing = parent:FindFirstChild(name)
+	if existing and existing:IsA("NumberValue") then
+		return existing
+	end
+
+	local numberValue = Instance.new("NumberValue")
+	numberValue.Name = name
+	numberValue.Value = defaultValue
+	numberValue.Parent = parent
+	return numberValue
+end
+
+local function createPlayerData(player: Player)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats"
+		leaderstats.Parent = player
+	end
+
+	local currencyValue = leaderstats:FindFirstChild(CURRENCY_STAT_NAME)
+	if not currencyValue or not currencyValue:IsA("IntValue") then
+		currencyValue = Instance.new("IntValue")
+		currencyValue.Name = CURRENCY_STAT_NAME
+		currencyValue.Value = 0
+		currencyValue.Parent = leaderstats
+	end
+
+	-- Upgrade-ready player settings (easy to hook into shop/buttons later).
+	local clickStats = player:FindFirstChild("ClickStats")
+	if not clickStats then
+		clickStats = Instance.new("Folder")
+		clickStats.Name = "ClickStats"
+		clickStats.Parent = player
+	end
+
+	getOrCreateNumberValue(clickStats, "BaseValue", DEFAULT_BASE_VALUE)
+	getOrCreateNumberValue(clickStats, "CritChance", DEFAULT_CRIT_CHANCE)
+	getOrCreateNumberValue(clickStats, "CritMultiplier", DEFAULT_CRIT_MULTIPLIER)
+end
+
+local function calculateGain(player: Player): (number, boolean)
+	local clickStats = player:FindFirstChild("ClickStats")
+	if not clickStats then
+		return DEFAULT_BASE_VALUE, false
+	end
+
+	local baseValueObj = clickStats:FindFirstChild("BaseValue")
+	local critChanceObj = clickStats:FindFirstChild("CritChance")
+	local critMultiplierObj = clickStats:FindFirstChild("CritMultiplier")
+
+	local baseValue = (baseValueObj and baseValueObj:IsA("NumberValue")) and baseValueObj.Value or DEFAULT_BASE_VALUE
+	local critChance = (critChanceObj and critChanceObj:IsA("NumberValue")) and critChanceObj.Value or DEFAULT_CRIT_CHANCE
+	local critMultiplier = (critMultiplierObj and critMultiplierObj:IsA("NumberValue")) and critMultiplierObj.Value or DEFAULT_CRIT_MULTIPLIER
+
+	local isCrit = math.random() < critChance
+	if isCrit then
+		return math.max(1, math.floor(baseValue * critMultiplier)), true
+	end
+
+	return math.max(1, math.floor(baseValue)), false
+end
+
+Players.PlayerAdded:Connect(createPlayerData)
+
+for _, player in Players:GetPlayers() do
+	createPlayerData(player)
+end
+
+playerClickEvent.OnServerEvent:Connect(function(player: Player)
+	if not player or not player:IsDescendantOf(Players) then
+		return
+	end
+
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		warn("[ClickCurrencyHandler] Missing leaderstats for " .. player.Name)
+		return
+	end
+
+	local currencyValue = leaderstats:FindFirstChild(CURRENCY_STAT_NAME)
+	if not currencyValue or not currencyValue:IsA("IntValue") then
+		warn("[ClickCurrencyHandler] Missing Currency IntValue for " .. player.Name)
+		return
+	end
+
+	local gain, isCrit = calculateGain(player)
+	currencyValue.Value += gain
+
+	print(string.format("[ClickCurrencyHandler] %s gained %d%s", player.Name, gain, isCrit and " (CRIT)" or ""))
+
+	-- Send gain + crit flag so client can show matching floating text.
+	playerClickEvent:FireClient(player, gain, isCrit)
+end)
+]]></string>
+      </Properties>
+    </Item>
+    <Item class="Script" referent="4">
+      <Properties>
+        <string name="Name">Main</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[-- Main Server Entry Point
+print("================================")
+print("🎮 Roblox Clicker - Server Started")
+print("================================")
+
+-- === GENERATE WORLD ON SERVER START ===
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Colors
+local PRIMARY_COLOR = Color3.fromRGB(100, 180, 255)
+local ACCENT_COLOR = Color3.fromRGB(200, 100, 255)
+local SECONDARY_COLOR = Color3.fromRGB(100, 255, 200)
+local DANGER_COLOR = Color3.fromRGB(255, 100, 100)
+local GOLD_COLOR = Color3.fromRGB(255, 215, 0)
+
+local workspace = game:GetService("Workspace")
+workspace.Gravity = 32
+
+-- Create Base Ground (much larger)
+local baseGround = Instance.new("Part")
+baseGround.Name = "BaseGround"
+baseGround.Shape = Enum.PartType.Block
+baseGround.Material = Enum.Material.Concrete
+baseGround.Size = Vector3.new(250, 1, 250)
+baseGround.TopSurface = Enum.SurfaceType.Smooth
+baseGround.BottomSurface = Enum.SurfaceType.Smooth
+baseGround.CanCollide = true
+baseGround.CFrame = CFrame.new(0, 0, 0)
+baseGround.Color = Color3.fromRGB(50, 50, 60)
+baseGround.Parent = workspace
+
+-- Create Advanced Spawn Setup
+local spawnCenter = Instance.new("Part")
+spawnCenter.Name = "SpawnCenter"
+spawnCenter.Shape = Enum.PartType.Cylinder
+spawnCenter.Material = Enum.Material.Neon
+spawnCenter.Size = Vector3.new(1, 30, 30)
+spawnCenter.TopSurface = Enum.SurfaceType.Smooth
+spawnCenter.BottomSurface = Enum.SurfaceType.Smooth
+spawnCenter.CanCollide = false
+spawnCenter.Transparency = 0.2
+spawnCenter.CFrame = CFrame.new(0, 2, 0)
+spawnCenter.Color = PRIMARY_COLOR
+spawnCenter.Parent = workspace
+
+-- Rotating Energy Ring
+local energyRing = Instance.new("Part")
+energyRing.Name = "EnergyRing"
+energyRing.Shape = Enum.PartType.Cylinder
+energyRing.Material = Enum.Material.Neon
+energyRing.Size = Vector3.new(0.5, 50, 50)
+energyRing.TopSurface = Enum.SurfaceType.Smooth
+energyRing.BottomSurface = Enum.SurfaceType.Smooth
+energyRing.CanCollide = false
+energyRing.Transparency = 0.35
+energyRing.CFrame = CFrame.new(0, 5, 0)
+energyRing.Color = ACCENT_COLOR
+energyRing.Parent = workspace
+
+-- Spawn Platform
+local spawnPlatform = Instance.new("Part")
+spawnPlatform.Name = "SpawnPlatform"
+spawnPlatform.Shape = Enum.PartType.Block
+spawnPlatform.Material = Enum.Material.Neon
+spawnPlatform.Size = Vector3.new(45, 0.5, 45)
+spawnPlatform.TopSurface = Enum.SurfaceType.Smooth
+spawnPlatform.BottomSurface = Enum.SurfaceType.Smooth
+spawnPlatform.CanCollide = true
+spawnPlatform.CFrame = CFrame.new(0, 1.5, 0)
+spawnPlatform.Color = PRIMARY_COLOR
+spawnPlatform.Transparency = 0.15
+spawnPlatform.Parent = workspace
+
+-- ROTATING ENERGY RING ANIMATION
+local ringAngle = 0
+RunService.RenderStepped:Connect(function()
+	ringAngle = ringAngle + 1.5
+	energyRing.CFrame = CFrame.new(0, 5, 0) * CFrame.Angles(math.rad(ringAngle), math.rad(ringAngle * 0.7), 0)
+end)
+
+-- Spawn Platform Corner Pillars
+local function createPillar(offset, color)
+	local pillar = Instance.new("Part")
+	pillar.Name = "Pillar"
+	pillar.Shape = Enum.PartType.Block
+	pillar.Material = Enum.Material.Neon
+	pillar.Size = Vector3.new(6, 12, 6)
+	pillar.TopSurface = Enum.SurfaceType.Smooth
+	pillar.BottomSurface = Enum.SurfaceType.Smooth
+	pillar.CanCollide = true
+	pillar.CFrame = CFrame.new(0, 6, 0) + offset
+	pillar.Color = color
+	pillar.Parent = workspace
+	return pillar
+end
+
+createPillar(Vector3.new(-22, 0, -22), ACCENT_COLOR)
+createPillar(Vector3.new(22, 0, -22), PRIMARY_COLOR)
+createPillar(Vector3.new(-22, 0, 22), PRIMARY_COLOR)
+createPillar(Vector3.new(22, 0, 22), ACCENT_COLOR)
+
+-- Arena Ring
+local arenaRing = Instance.new("Part")
+arenaRing.Name = "ArenaRing"
+arenaRing.Shape = Enum.PartType.Cylinder
+arenaRing.Material = Enum.Material.Neon
+arenaRing.Size = Vector3.new(3, 50, 50)
+arenaRing.TopSurface = Enum.SurfaceType.Smooth
+arenaRing.BottomSurface = Enum.SurfaceType.Smooth
+arenaRing.CanCollide = false
+arenaRing.Transparency = 0.5
+arenaRing.CFrame = CFrame.new(40, 10, 0)
+arenaRing.Color = SECONDARY_COLOR
+arenaRing.Parent = workspace
+
+-- FLOATING PLATFORMS
+local floatingPlatforms = {
+	{pos = Vector3.new(35, 8, -25), size = Vector3.new(15, 1, 15)},
+	{pos = Vector3.new(50, 10, 5), size = Vector3.new(15, 1, 15)},
+	{pos = Vector3.new(30, 12, 35), size = Vector3.new(15, 1, 15)},
+	{pos = Vector3.new(-45, 10, -30), size = Vector3.new(12, 1, 12)},
+	{pos = Vector3.new(-55, 14, 20), size = Vector3.new(12, 1, 12)},
+}
+
+for _, data in ipairs(floatingPlatforms) do
+	local platform = Instance.new("Part")
+	platform.Name = "FloatingPlatform"
+	platform.Shape = Enum.PartType.Block
+	platform.Material = Enum.Material.Neon
+	platform.Size = data.size
+	platform.TopSurface = Enum.SurfaceType.Smooth
+	platform.BottomSurface = Enum.SurfaceType.Smooth
+	platform.CanCollide = true
+	platform.CFrame = CFrame.new(data.pos)
+	platform.Color = SECONDARY_COLOR
+	platform.Transparency = 0.1
+	platform.Parent = workspace
+end
+
+-- Create Spawn Location
+local spawnLocation = Instance.new("SpawnLocation")
+spawnLocation.Name = "SpawnLocation"
+spawnLocation.Material = Enum.Material.Neon
+spawnLocation.Size = Vector3.new(25, 0.5, 25)
+spawnLocation.TopSurface = Enum.SurfaceType.Smooth
+spawnLocation.BottomSurface = Enum.SurfaceType.Smooth
+spawnLocation.CanCollide = true
+spawnLocation.CFrame = CFrame.new(0, 2, 0)
+spawnLocation.Color = PRIMARY_COLOR
+spawnLocation.Transparency = 0.05
+spawnLocation.CanTouch = true
+spawnLocation.Parent = workspace
+
+-- ============ TOWER 1 (Rechts - Pyramid) ============
+local tower1Base = Instance.new("Part")
+tower1Base.Name = "Tower1_Base"
+tower1Base.Shape = Enum.PartType.Block
+tower1Base.Material = Enum.Material.Concrete
+tower1Base.Size = Vector3.new(25, 1, 25)
+tower1Base.TopSurface = Enum.SurfaceType.Smooth
+tower1Base.BottomSurface = Enum.SurfaceType.Smooth
+tower1Base.CanCollide = true
+tower1Base.CFrame = CFrame.new(65, 1, -40)
+tower1Base.Color = Color3.fromRGB(80, 40, 40)
+tower1Base.Parent = workspace
+
+for i = 1, 5 do
+	local level = Instance.new("Part")
+	level.Name = "Tower1_Level_" .. i
+	level.Shape = Enum.PartType.Block
+	level.Material = Enum.Material.Neon
+	level.Size = Vector3.new(25 - (i-1)*4, 1.5, 25 - (i-1)*4)
+	level.TopSurface = Enum.SurfaceType.Smooth
+	level.BottomSurface = Enum.SurfaceType.Smooth
+	level.CanCollide = true
+	level.CFrame = CFrame.new(65, 1.5 + (i-1)*2.5, -40)
+	level.Color = i % 2 == 0 and PRIMARY_COLOR or ACCENT_COLOR
+	level.Parent = workspace
+end
+
+-- ============ TOWER 2 (Links - Spiral) ============
+for i = 0, 10 do
+	local angle = (i / 10) * math.pi * 2
+	local radius = 18
+	local x = math.cos(angle) * radius - 55
+	local z = math.sin(angle) * radius + 35
+	
+	local block = Instance.new("Part")
+	block.Name = "Tower2_Block_" .. i
+	block.Shape = Enum.PartType.Block
+	block.Material = Enum.Material.Neon
+	block.Size = Vector3.new(10, 2.5, 10)
+	block.TopSurface = Enum.SurfaceType.Smooth
+	block.BottomSurface = Enum.SurfaceType.Smooth
+	block.CanCollide = true
+	block.CFrame = CFrame.new(x, 5 + i*2.5, z)
+	block.Color = i % 2 == 0 and SECONDARY_COLOR or DANGER_COLOR
+	block.Parent = workspace
+end
+
+-- ============ FLOATING ORBS ============
+local function createFloatingOrb(position, color, size)
+	local orb = Instance.new("Part")
+	orb.Name = "FloatingOrb"
+	orb.Shape = Enum.PartType.Ball
+	orb.Material = Enum.Material.Neon
+	orb.Size = Vector3.new(size, size, size)
+	orb.TopSurface = Enum.SurfaceType.Smooth
+	orb.BottomSurface = Enum.SurfaceType.Smooth
+	orb.CanCollide = false
+	orb.CFrame = CFrame.new(position)
+	orb.Color = color
+	orb.Parent = workspace
+	
+	local startPos = position
+	local endPos = position + Vector3.new(0, 8, 0)
+	local floatTween = TweenService:Create(
+		orb,
+		TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+		{ Position = endPos }
+	)
+	
+	floatTween.Completed:Connect(function()
+		TweenService:Create(
+			orb,
+			TweenInfo.new(5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+			{ Position = startPos }
+		):Play()
+	end)
+	
+	floatTween:Play()
+end
+
+createFloatingOrb(Vector3.new(-35, 10, 40), PRIMARY_COLOR, 5)
+createFloatingOrb(Vector3.new(55, 12, -35), ACCENT_COLOR, 5)
+createFloatingOrb(Vector3.new(25, 14, 50), SECONDARY_COLOR, 4)
+createFloatingOrb(Vector3.new(-50, 11, -25), GOLD_COLOR, 6)
+
+-- ============ CRYSTAL FORMATIONS ============
+local function createCrystal(position, size, rotation)
+	local crystal = Instance.new("Part")
+	crystal.Name = "Crystal"
+	crystal.Shape = Enum.PartType.Block
+	crystal.Material = Enum.Material.Neon
+	crystal.Size = size
+	crystal.TopSurface = Enum.SurfaceType.Smooth
+	crystal.BottomSurface = Enum.SurfaceType.Smooth
+	crystal.CanCollide = false
+	crystal.Transparency = 0.25
+	crystal.CFrame = CFrame.new(position) * CFrame.Angles(math.rad(rotation.x), math.rad(rotation.y), math.rad(rotation.z))
+	crystal.Color = PRIMARY_COLOR
+	crystal.Parent = workspace
+end
+
+createCrystal(Vector3.new(-30, 10, 55), Vector3.new(4, 20, 4), {x = 45, y = 30, z = 15})
+createCrystal(Vector3.new(50, 12, -55), Vector3.new(5, 25, 5), {x = 30, y = 45, z = 20})
+createCrystal(Vector3.new(-60, 14, -25), Vector3.new(3.5, 18, 3.5), {x = 60, y = 20, z = 25})
+
+-- ============ MONOLITH ============
+local monolith = Instance.new("Part")
+monolith.Name = "Monolith"
+monolith.Shape = Enum.PartType.Block
+monolith.Material = Enum.Material.Neon
+monolith.Size = Vector3.new(12, 50, 12)
+monolith.TopSurface = Enum.SurfaceType.Smooth
+monolith.BottomSurface = Enum.SurfaceType.Smooth
+monolith.CanCollide = false
+monolith.Transparency = 0.2
+monolith.CFrame = CFrame.new(70, 25, 50)
+monolith.Color = DANGER_COLOR
+monolith.Parent = workspace
+
+-- ============ MONSTER SPAWN AREA ============
+local monsterAreaBase = Instance.new("Part")
+monsterAreaBase.Name = "MonsterArea"
+monsterAreaBase.Shape = Enum.PartType.Block
+monsterAreaBase.Material = Enum.Material.Concrete
+monsterAreaBase.Size = Vector3.new(30, 1, 30)
+monsterAreaBase.TopSurface = Enum.SurfaceType.Smooth
+monsterAreaBase.BottomSurface = Enum.SurfaceType.Smooth
+monsterAreaBase.CanCollide = true
+monsterAreaBase.CFrame = CFrame.new(-45, 1, 0)
+monsterAreaBase.Color = Color3.fromRGB(100, 60, 60)
+monsterAreaBase.Parent = workspace
+
+local function createWall(offset, rotation)
+	local wall = Instance.new("Part")
+	wall.Name = "MonsterWall"
+	wall.Shape = Enum.PartType.Block
+	wall.Material = Enum.Material.Brick
+	wall.Size = Vector3.new(3, 6, 1)
+	wall.TopSurface = Enum.SurfaceType.Smooth
+	wall.BottomSurface = Enum.SurfaceType.Smooth
+	wall.CanCollide = true
+	wall.CFrame = CFrame.new(-45, 3, 0) * CFrame.Angles(0, math.rad(rotation), 0) + offset
+	wall.Color = Color3.fromRGB(120, 60, 40)
+	wall.Parent = workspace
+end
+
+for i = 0, 3 do
+	createWall(Vector3.new(15 * math.cos(i * math.pi / 2), 0, 15 * math.sin(i * math.pi / 2)), i * 90)
+end
+
+-- ============ LIGHTING SETUP ============
+local Lighting = game:GetService("Lighting")
+Lighting.Ambient = Color3.fromRGB(100, 120, 140)
+Lighting.OutdoorAmbient = Color3.fromRGB(100, 120, 140)
+Lighting.Brightness = 2
+Lighting.ClockTime = 14
+
+Lighting.FogColor = Color3.fromRGB(50, 60, 80)
+Lighting.FogEnd = 500
+Lighting.FogStart = 100
+
+-- Atmospheric lighting orbs
+local function createLightOrb(position, color, brightness)
+	local orb = Instance.new("Part")
+	orb.Name = "LightOrb"
+	orb.Shape = Enum.PartType.Ball
+	orb.Material = Enum.Material.Neon
+	orb.Size = Vector3.new(2, 2, 2)
+	orb.CanCollide = false
+	orb.CFrame = CFrame.new(position)
+	orb.Color = color
+	orb.Transparency = 0.3
+	orb.Parent = workspace
+	
+	local light = Instance.new("PointLight")
+	light.Brightness = brightness
+	light.Color = color
+	light.Range = 30
+	light.Parent = orb
+end
+
+createLightOrb(Vector3.new(20, 15, 20), Color3.fromRGB(100, 200, 255), 1.5)
+createLightOrb(Vector3.new(-60, 15, -30), Color3.fromRGB(255, 100, 150), 1.2)
+createLightOrb(Vector3.new(-20, 15, 30), Color3.fromRGB(150, 255, 100), 1.3)
+
+print("✓ Lighting configured")
+print("✓ Atmospheric light orbs placed")
+print("✓ Spawn platform with energy ring")
+print("✓ Pyramid Tower (Rechts)")
+print("✓ Spiral Tower (Links)")
+print("✓ 4 Floating Orbs")
+print("✓ 3 Crystal Formations")
+print("✓ Monolith Structure")
+print("✓ Monster Area")
+print("✓ Server initialization complete!")
+]]></string>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="StarterGui" referent="5">
+    <Properties>
+      <string name="Name">StarterGui</string>
+    </Properties>
+    <Item class="ScreenGui" referent="6">
+      <Properties>
+        <string name="Name">ClickerUI</string>
+        <int name="DisplayOrder">5</int>
+        <token name="ScreenInsets">1</token>
+        <bool name="ResetOnSpawn">false</bool>
+      </Properties>
+      <Item class="TextButton" referent="7">
+        <Properties>
+          <string name="Name">ClickButton</string>
+          <bool name="AutoButtonColor">true</bool>
+          <string name="Text">TAP!</string>
+          <bool name="TextScaled">true</bool>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="8">
+        <Properties>
+          <string name="Name">ClickButtonLocal</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local PLAYER_CLICK_EVENT_NAME = "PlayerClick"
+local CLICK_BUTTON_NAME = "ClickButton"
+
+local localPlayer = Players.LocalPlayer
+local playerClickEvent = ReplicatedStorage:WaitForChild(PLAYER_CLICK_EVENT_NAME)
+
+if not playerClickEvent:IsA("RemoteEvent") then
+	warn("[ClickButton] ReplicatedStorage.PlayerClick is not a RemoteEvent.")
+	return
+end
+
+local screenGui = script.Parent
+if not screenGui then
+	warn("[ClickButton] Script has no parent ScreenGui.")
+	return
+end
+
+local clickButton = screenGui:FindFirstChild(CLICK_BUTTON_NAME)
+if not clickButton or not clickButton:IsA("TextButton") then
+	warn("[ClickButton] TextButton '" .. CLICK_BUTTON_NAME .. "' not found under ClickerUI.")
+	return
+end
+
+-- Runtime styling keeps the UI readable even if Studio defaults are plain.
+clickButton.AnchorPoint = Vector2.new(0.5, 0.5)
+clickButton.Position = UDim2.fromScale(0.5, 0.45)
+clickButton.Size = UDim2.fromOffset(200, 200)
+clickButton.AutoButtonColor = true
+clickButton.Active = true
+clickButton.BackgroundColor3 = Color3.fromRGB(38, 166, 91)
+clickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+clickButton.TextStrokeTransparency = 0.7
+clickButton.Font = Enum.Font.GothamBlack
+clickButton.Text = "TAP!"
+clickButton.TextScaled = true
+
+local buttonCorner = clickButton:FindFirstChild("ButtonCorner")
+if not buttonCorner then
+	buttonCorner = Instance.new("UICorner")
+	buttonCorner.Name = "ButtonCorner"
+	buttonCorner.CornerRadius = UDim.new(1, 0)
+	buttonCorner.Parent = clickButton
+end
+
+local buttonStroke = clickButton:FindFirstChild("ButtonStroke")
+if not buttonStroke then
+	buttonStroke = Instance.new("UIStroke")
+	buttonStroke.Name = "ButtonStroke"
+	buttonStroke.Thickness = 3
+	buttonStroke.Color = Color3.fromRGB(210, 255, 220)
+	buttonStroke.Parent = clickButton
+end
+
+local originalSize = clickButton.Size
+local pressedSize = UDim2.fromOffset(math.floor(originalSize.X.Offset * 0.94), math.floor(originalSize.Y.Offset * 0.94))
+
+local shrinkTweenInfo = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local expandTweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+local function animateButtonPress()
+	local shrinkTween = TweenService:Create(clickButton, shrinkTweenInfo, { Size = pressedSize })
+	local expandTween = TweenService:Create(clickButton, expandTweenInfo, { Size = originalSize })
+
+	shrinkTween:Play()
+	shrinkTween.Completed:Once(function()
+		expandTween:Play()
+	end)
+end
+
+local function spawnFloatingText(text: string, textColor: Color3)
+	local floatingLabel = Instance.new("TextLabel")
+	floatingLabel.Name = "FloatingClickFeedback"
+	floatingLabel.BackgroundTransparency = 1
+	floatingLabel.BorderSizePixel = 0
+	floatingLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	floatingLabel.Size = UDim2.fromOffset(180, 42)
+	floatingLabel.Position = UDim2.fromScale(0.5, 0.48)
+	floatingLabel.Text = text
+	floatingLabel.TextScaled = true
+	floatingLabel.Font = Enum.Font.GothamBold
+	floatingLabel.TextColor3 = textColor
+	floatingLabel.TextStrokeTransparency = 0.5
+	floatingLabel.ZIndex = clickButton.ZIndex + 2
+	floatingLabel.Parent = clickButton
+
+	local riseTween = TweenService:Create(
+		floatingLabel,
+		TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{
+			Position = UDim2.fromScale(0.5, 0.2),
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+		}
+	)
+
+	riseTween:Play()
+	riseTween.Completed:Once(function()
+		floatingLabel:Destroy()
+	end)
+end
+
+clickButton.MouseButton1Click:Connect(function()
+	animateButtonPress()
+	spawnFloatingText("Click!", Color3.fromRGB(230, 240, 255))
+	playerClickEvent:FireServer()
+end)
+
+-- Server replies with exact gain (+ crit info), so feedback matches real currency gain.
+playerClickEvent.OnClientEvent:Connect(function(gain: number, isCrit: boolean)
+	if not localPlayer then
+		return
+	end
+
+	local numericGain = (type(gain) == "number") and gain or 0
+	if isCrit then
+		spawnFloatingText(string.format("CRIT +%d", numericGain), Color3.fromRGB(255, 220, 90))
+	else
+		spawnFloatingText(string.format("+%d", numericGain), Color3.fromRGB(180, 255, 180))
+	end
+end)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="TextLabel" referent="9">
+        <Properties>
+          <string name="Name">CurrencyLabel</string>
+          <float name="BackgroundTransparency">1</float>
+          <string name="Text">Currency: 0</string>
+          <bool name="TextScaled">true</bool>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="10">
+        <Properties>
+          <string name="Name">CurrencyLabelLocal</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local CURRENCY_LABEL_NAME = "CurrencyLabel"
+local CURRENCY_STAT_NAME = "Currency"
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+	warn("[CurrencyLabel] LocalPlayer is not available.")
+	return
+end
+
+local screenGui = script.Parent
+if not screenGui then
+	warn("[CurrencyLabel] Script has no parent ScreenGui.")
+	return
+end
+
+local currencyLabel = screenGui:FindFirstChild(CURRENCY_LABEL_NAME)
+if not currencyLabel or not currencyLabel:IsA("TextLabel") then
+	warn("[CurrencyLabel] TextLabel '" .. CURRENCY_LABEL_NAME .. "' not found under ClickerUI.")
+	return
+end
+
+currencyLabel.AnchorPoint = Vector2.new(0, 0)
+currencyLabel.Position = UDim2.fromScale(0.02, 0.06)
+currencyLabel.Size = UDim2.fromOffset(350, 68)
+currencyLabel.BackgroundTransparency = 1
+currencyLabel.TextColor3 = Color3.fromRGB(240, 248, 255)
+currencyLabel.TextStrokeTransparency = 0.45
+currencyLabel.TextScaled = true
+currencyLabel.Font = Enum.Font.GothamBold
+
+local leaderstats = localPlayer:WaitForChild("leaderstats", 10)
+if not leaderstats then
+	warn("[CurrencyLabel] leaderstats not found for local player.")
+	return
+end
+
+local currencyValue = leaderstats:WaitForChild(CURRENCY_STAT_NAME, 10)
+if not currencyValue or not currencyValue:IsA("IntValue") then
+	warn("[CurrencyLabel] IntValue '" .. CURRENCY_STAT_NAME .. "' not found in leaderstats.")
+	return
+end
+
+local lastSeenValue = currencyValue.Value
+local normalColor = Color3.fromRGB(240, 248, 255)
+local gainColor = Color3.fromRGB(255, 236, 164)
+
+local function updateCurrencyText(newValue: number)
+	currencyLabel.Text = string.format("Currency: %d", newValue)
+end
+
+local function playGainFlash()
+	local flashIn = TweenService:Create(
+		currencyLabel,
+		TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ TextColor3 = gainColor }
+	)
+	local flashOut = TweenService:Create(
+		currencyLabel,
+		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ TextColor3 = normalColor }
+	)
+
+	flashIn:Play()
+	flashIn.Completed:Once(function()
+		flashOut:Play()
+	end)
+end
+
+updateCurrencyText(currencyValue.Value)
+
+currencyValue:GetPropertyChangedSignal("Value"):Connect(function()
+	local newValue = currencyValue.Value
+	updateCurrencyText(newValue)
+
+	if newValue > lastSeenValue then
+		playGainFlash()
+	end
+
+	lastSeenValue = newValue
+end)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="11">
+        <Properties>
+          <string name="Name">Shop</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local CURRENCY_STAT_NAME = "Currency"
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+	warn("[Shop] LocalPlayer is not available.")
+	return
+end
+
+local screenGui = script.Parent
+if not screenGui then
+	warn("[Shop] Script has no parent ScreenGui.")
+	return
+end
+
+-- Shop data structure
+local SHOP_ITEMS = {
+	{
+		id = "double_tap",
+		name = "Double Tap",
+		description = "Double your base click value",
+		cost = 100,
+		category = "upgrades"
+	},
+	{
+		id = "crit_chance",
+		name = "Crit Chance +10%",
+		description = "Increase critical hit chance",
+		cost = 250,
+		category = "upgrades"
+	},
+	{
+		id = "crit_mult",
+		name = "Crit Multiplier x2",
+		description = "Double critical hit damage",
+		cost = 500,
+		category = "upgrades"
+	},
+	{
+		id = "auto_click",
+		name = "Auto Clicker",
+		description = "Rate: 1 click/second",
+		cost = 1000,
+		category = "perks"
+	},
+	{
+		id = "passive_income",
+		name = "Passive Income",
+		description = "Earn 1 currency per second",
+		cost = 2000,
+		category = "perks"
+	}
+}
+
+-- Create Shop Frame
+local shopFrame = Instance.new("Frame")
+shopFrame.Name = "ShopFrame"
+shopFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+shopFrame.BorderSizePixel = 0
+shopFrame.AnchorPoint = Vector2.new(0.5, 1)
+shopFrame.Position = UDim2.fromScale(0.5, 0.98)
+shopFrame.Size = UDim2.fromScale(0.95, 0.25)
+shopFrame.Parent = screenGui
+
+local shopCorner = Instance.new("UICorner")
+shopCorner.CornerRadius = UDim.new(0, 12)
+shopCorner.Parent = shopFrame
+
+local shopStroke = Instance.new("UIStroke")
+shopStroke.Color = Color3.fromRGB(70, 150, 200)
+shopStroke.Thickness = 2
+shopStroke.Parent = shopFrame
+
+-- Create Tab Bar
+local tabBar = Instance.new("Frame")
+tabBar.Name = "TabBar"
+tabBar.BackgroundTransparency = 1
+tabBar.BorderSizePixel = 0
+tabBar.Size = UDim2.fromScale(1, 0.15)
+tabBar.Parent = shopFrame
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+tabLayout.Padding = UDim.new(0, 8)
+tabLayout.Parent = tabBar
+
+local tabs = {}
+local currentTab = "upgrades"
+
+-- Create Tab Buttons
+for _, category in ipairs({"upgrades", "perks"}) do
+	local tabButton = Instance.new("TextButton")
+	tabButton.Name = category .. "Tab"
+	tabButton.Text = category:sub(1, 1):upper() .. category:sub(2)
+	tabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+	tabButton.TextColor3 = Color3.fromRGB(200, 200, 220)
+	tabButton.Font = Enum.Font.GothamBold
+	tabButton.TextScaled = true
+	tabButton.Size = UDim2.new(0, 100, 1, 0)
+	tabButton.Parent = tabBar
+	
+	local tabCorner = Instance.new("UICorner")
+	tabCorner.CornerRadius = UDim.new(0, 6)
+	tabCorner.Parent = tabButton
+	
+	tabs[category] = tabButton
+end
+
+-- Create Items Container
+local itemsContainer = Instance.new("Frame")
+itemsContainer.Name = "ItemsContainer"
+itemsContainer.BackgroundTransparency = 1
+itemsContainer.BorderSizePixel = 0
+itemsContainer.Position = UDim2.fromScale(0, 0.15)
+itemsContainer.Size = UDim2.fromScale(1, 0.85)
+itemsContainer.Parent = shopFrame
+
+local itemsLayout = Instance.new("UIListLayout")
+itemsLayout.FillDirection = Enum.FillDirection.Horizontal
+itemsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+itemsLayout.Padding = UDim.new(0, 8)
+itemsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+itemsLayout.Parent = itemsContainer
+
+local itemsPadding = Instance.new("UIPadding")
+itemsPadding.PaddingLeft = UDim.new(0, 8)
+itemsPadding.PaddingRight = UDim.new(0, 8)
+itemsPadding.PaddingTop = UDim.new(0, 4)
+itemsPadding.PaddingBottom = UDim.new(0, 4)
+itemsPadding.Parent = itemsContainer
+
+local function createShopItem(item)
+	local itemFrame = Instance.new("Frame")
+	itemFrame.Name = item.id
+	itemFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+	itemFrame.BorderSizePixel = 0
+	itemFrame.Size = UDim2.new(0, 180, 1, -8)
+	itemFrame.Parent = itemsContainer
+	
+	local itemCorner = Instance.new("UICorner")
+	itemCorner.CornerRadius = UDim.new(0, 8)
+	itemCorner.Parent = itemFrame
+	
+	local itemStroke = Instance.new("UIStroke")
+	itemStroke.Color = Color3.fromRGB(100, 180, 255)
+	itemStroke.Thickness = 1
+	itemStroke.Parent = itemFrame
+	
+	-- Title
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "Title"
+	titleLabel.Text = item.name
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextColor3 = Color3.fromRGB(200, 240, 255)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextScaled = true
+	titleLabel.Position = UDim2.fromScale(0.05, 0.05)
+	titleLabel.Size = UDim2.fromScale(0.9, 0.25)
+	titleLabel.Parent = itemFrame
+	
+	-- Description
+	local descLabel = Instance.new("TextLabel")
+	descLabel.Name = "Description"
+	descLabel.Text = item.description
+	descLabel.BackgroundTransparency = 1
+	descLabel.TextColor3 = Color3.fromRGB(180, 200, 220)
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextScaled = true
+	descLabel.TextWrapped = true
+	descLabel.Position = UDim2.fromScale(0.05, 0.3)
+	descLabel.Size = UDim2.fromScale(0.9, 0.35)
+	descLabel.Parent = itemFrame
+	
+	-- Cost Button
+	local costButton = Instance.new("TextButton")
+	costButton.Name = "CostButton"
+	costButton.Text = string.format("$%d", item.cost)
+	costButton.BackgroundColor3 = Color3.fromRGB(38, 166, 91)
+	costButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	costButton.Font = Enum.Font.GothamBold
+	costButton.TextScaled = true
+	costButton.Position = UDim2.fromScale(0.05, 0.7)
+	costButton.Size = UDim2.fromScale(0.9, 0.25)
+	costButton.Parent = itemFrame
+	
+	local costCorner = Instance.new("UICorner")
+	costCorner.CornerRadius = UDim.new(0, 6)
+	costCorner.Parent = costButton
+	
+	return itemFrame
+end
+
+local function updateShop(category)
+	-- Clear items
+	for _, child in itemsContainer:GetChildren() do
+		if child:IsA("Frame") and child.Name ~= "UIListLayout" and child.Name ~= "UIPadding" then
+			child:Destroy()
+		end
+	end
+	
+	-- Add items for category
+	local count = 0
+	for _, item in ipairs(SHOP_ITEMS) do
+		if item.category == category then
+			createShopItem(item)
+			count = count + 1
+		end
+	end
+end
+
+-- Tab switching
+for category, tabButton in tabs do
+	tabButton.MouseButton1Click:Connect(function()
+		currentTab = category
+		updateShop(category)
+		
+		-- Update tab appearance
+		for cat, btn in tabs do
+			if cat == category then
+				btn.BackgroundColor3 = Color3.fromRGB(70, 120, 200)
+			else
+				btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+			end
+		end
+	end)
+end
+
+-- Initial setup
+tabs["upgrades"]:FireEvent(Enum.ActivationInputType.Touch)
+updateShop("upgrades")
+tabs["upgrades"].BackgroundColor3 = Color3.fromRGB(70, 120, 200)
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="LocalScript" referent="12">
+        <Properties>
+          <string name="Name">Stats</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+	warn("[Stats] LocalPlayer is not available.")
+	return
+end
+
+local screenGui = script.Parent
+if not screenGui then
+	warn("[Stats] Script has no parent ScreenGui.")
+	return
+end
+
+-- Create Stats Frame (top right)
+local statsFrame = Instance.new("Frame")
+statsFrame.Name = "StatsFrame"
+statsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+statsFrame.BorderSizePixel = 0
+statsFrame.AnchorPoint = Vector2.new(1, 0)
+statsFrame.Position = UDim2.fromScale(0.98, 0.06)
+statsFrame.Size = UDim2.fromScale(0.22, 0.3)
+statsFrame.Parent = screenGui
+
+local statsCorner = Instance.new("UICorner")
+statsCorner.CornerRadius = UDim.new(0, 10)
+statsCorner.Parent = statsFrame
+
+local statsStroke = Instance.new("UIStroke")
+statsStroke.Color = Color3.fromRGB(100, 180, 255)
+statsStroke.Thickness = 2
+statsStroke.Parent = statsFrame
+
+-- Title
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Text = "⚡ Stats"
+titleLabel.BackgroundColor3 = Color3.fromRGB(35, 70, 120)
+titleLabel.TextColor3 = Color3.fromRGB(200, 240, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextScaled = true
+titleLabel.Position = UDim2.fromScale(0, 0)
+titleLabel.Size = UDim2.fromScale(1, 0.2)
+titleLabel.BorderSizePixel = 0
+titleLabel.Parent = statsFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleLabel
+
+-- Stats Container
+local statsContainer = Instance.new("Frame")
+statsContainer.Name = "Container"
+statsContainer.BackgroundTransparency = 1
+statsContainer.BorderSizePixel = 0
+statsContainer.Position = UDim2.fromScale(0, 0.2)
+statsContainer.Size = UDim2.fromScale(1, 0.8)
+statsContainer.Parent = statsFrame
+
+local containerPadding = Instance.new("UIPadding")
+containerPadding.PaddingLeft = UDim.new(0, 10)
+containerPadding.PaddingRight = UDim.new(0, 10)
+containerPadding.PaddingTop = UDim.new(0, 8)
+containerPadding.PaddingBottom = UDim.new(0, 8)
+containerPadding.Parent = statsContainer
+
+local containerLayout = Instance.new("UIListLayout")
+containerLayout.FillDirection = Enum.FillDirection.Vertical
+containerLayout.Padding = UDim.new(0, 6)
+containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+containerLayout.Parent = statsContainer
+
+-- Function to create a stat row
+local function createStatRow(statName, statValue)
+	local rowFrame = Instance.new("Frame")
+	rowFrame.Name = statName
+	rowFrame.BackgroundTransparency = 1
+	rowFrame.BorderSizePixel = 0
+	rowFrame.Size = UDim2.fromScale(1, 0.2)
+	rowFrame.Parent = statsContainer
+	
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "Name"
+	nameLabel.Text = statName .. ":"
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3 = Color3.fromRGB(180, 200, 220)
+	nameLabel.Font = Enum.Font.Gotham
+	nameLabel.TextScaled = true
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Size = UDim2.fromScale(0.6, 1)
+	nameLabel.Parent = rowFrame
+	
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Name = "Value"
+	valueLabel.Text = tostring(statValue)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.TextColor3 = Color3.fromRGB(100, 220, 150)
+	valueLabel.Font = Enum.Font.GothamBold
+	valueLabel.TextScaled = true
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.Position = UDim2.fromScale(0.4, 0)
+	valueLabel.Size = UDim2.fromScale(0.6, 1)
+	valueLabel.Parent = rowFrame
+	
+	return rowFrame, valueLabel
+end
+
+-- Wait for player stats and update
+local clickStats = localPlayer:WaitForChild("ClickStats", 10)
+if clickStats then
+	local baseValueObj = clickStats:WaitForChild("BaseValue", 5)
+	local critChanceObj = clickStats:WaitForChild("CritChance", 5)
+	local critMultObj = clickStats:WaitForChild("CritMultiplier", 5)
+	
+	if baseValueObj and baseValueObj:IsA("NumberValue") then
+		local _, valueLabel = createStatRow("Base DMG", baseValueObj.Value)
+		baseValueObj:GetPropertyChangedSignal("Value"):Connect(function()
+			valueLabel.Text = string.format("%.1f", baseValueObj.Value)
+		end)
+	end
+	
+	if critChanceObj and critChanceObj:IsA("NumberValue") then
+		local _, valueLabel = createStatRow("Crit %", math.floor(critChanceObj.Value * 100))
+		critChanceObj:GetPropertyChangedSignal("Value"):Connect(function()
+			valueLabel.Text = string.format("%d%%", math.floor(critChanceObj.Value * 100))
+		end)
+	end
+	
+	if critMultObj and critMultObj:IsA("NumberValue") then
+		local _, valueLabel = createStatRow("Crit Mult", string.format("x%.1f", critMultObj.Value))
+		critMultObj:GetPropertyChangedSignal("Value"):Connect(function()
+			valueLabel.Text = string.format("x%.1f", critMultObj.Value)
+		end)
+	end
+end
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="13">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterCharacterScripts" referent="14">
+      <Properties>
+        <string name="Name">StarterCharacterScripts</string>
+      </Properties>
+    </Item>
+    <Item class="StarterPlayerScripts" referent="15">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="LocalScript" referent="16">
+        <Properties>
+          <string name="Name">CameraController</string>
+          <string name="Source"><![CDATA[local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+	warn("[CameraController] LocalPlayer not found")
+	return
+end
+
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+
+if not rootPart then
+	warn("[CameraController] HumanoidRootPart not found")
+	return
+end
+
+local camera = workspace.CurrentCamera
+
+-- Set up camera to look at the arena from a good angle
+local cameraOffset = Vector3.new(35, 25, 45)
+local targetOffset = Vector3.new(5, 0, 0)
+
+local function updateCamera()
+	if rootPart and rootPart.Parent then
+		local targetPos = rootPart.Position + targetOffset
+		local cameraPos = targetPos + cameraOffset
+		
+		camera.CFrame = CFrame.lookAt(cameraPos, targetPos)
+	end
+end
+
+-- Update camera every frame
+RunService.RenderStepped:Connect(updateCamera)
+
+print("[CameraController] Camera system ready!")
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+</roblox>

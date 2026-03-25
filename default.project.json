@@ -8,8 +8,23 @@
       }
     },
     "ServerScriptService": {
+      "Main": {
+        "$path": "src/server/main.server.lua"
+      },
       "ClickCurrencyHandler": {
         "$path": "src/ServerScriptService/ClickCurrencyHandler.server.lua"
+      },
+      "UpgradeSystem": {
+        "$path": "src/ServerScriptService/UpgradeSystem.server.lua"
+      }
+    },
+    "StarterPlayer": {
+      "StarterCharacterScripts": {
+      },
+      "StarterPlayerScripts": {
+        "CameraController": {
+          "$path": "src/client/CameraController.client.lua"
+        }
       }
     },
     "StarterGui": {

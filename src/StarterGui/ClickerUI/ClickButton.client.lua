@@ -1,9 +1,11 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local PLAYER_CLICK_EVENT_NAME = "PlayerClick"
 local CLICK_BUTTON_NAME = "ClickButton"
+local SCREEN_CLICK_SURFACE_NAME = "ScreenClickSurface"
 
 local localPlayer = Players.LocalPlayer
 local playerClickEvent = ReplicatedStorage:WaitForChild(PLAYER_CLICK_EVENT_NAME)
@@ -19,79 +21,66 @@ if not screenGui then
 	return
 end
 
-local clickButton = screenGui:FindFirstChild(CLICK_BUTTON_NAME)
-if not clickButton or not clickButton:IsA("TextButton") then
-	warn("[ClickButton] TextButton '" .. CLICK_BUTTON_NAME .. "' not found under ClickerUI.")
-	return
+local function formatCompact(value: number): string
+	local absValue = math.abs(value)
+	if absValue >= 1e12 then
+		return string.format("%.2fT", value / 1e12)
+	elseif absValue >= 1e9 then
+		return string.format("%.2fB", value / 1e9)
+	elseif absValue >= 1e6 then
+		return string.format("%.2fM", value / 1e6)
+	elseif absValue >= 1e3 then
+		return string.format("%.2fK", value / 1e3)
+	end
+
+	return string.format("%d", math.floor(value))
 end
 
--- Runtime styling keeps the UI readable even if Studio defaults are plain.
-clickButton.AnchorPoint = Vector2.new(0.5, 0.5)
-clickButton.Position = UDim2.fromScale(0.5, 0.6)
-clickButton.Size = UDim2.fromOffset(250, 250)
-clickButton.AutoButtonColor = true
-clickButton.Active = true
-clickButton.BackgroundColor3 = Color3.fromRGB(38, 166, 91)
-clickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-clickButton.TextStrokeTransparency = 0.7
-clickButton.Font = Enum.Font.GothamBlack
-clickButton.Text = "TAP!"
-clickButton.TextScaled = true
-
-local buttonCorner = clickButton:FindFirstChild("ButtonCorner")
-if not buttonCorner then
-	buttonCorner = Instance.new("UICorner")
-	buttonCorner.Name = "ButtonCorner"
-	buttonCorner.CornerRadius = UDim.new(1, 0)
-	buttonCorner.Parent = clickButton
+local oldButton = screenGui:FindFirstChild(CLICK_BUTTON_NAME)
+if oldButton and oldButton:IsA("GuiObject") then
+	oldButton.Visible = false
+	oldButton.Active = false
 end
 
-local buttonStroke = clickButton:FindFirstChild("ButtonStroke")
-if not buttonStroke then
-	buttonStroke = Instance.new("UIStroke")
-	buttonStroke.Name = "ButtonStroke"
-	buttonStroke.Thickness = 3
-	buttonStroke.Color = Color3.fromRGB(210, 255, 220)
-	buttonStroke.Parent = clickButton
+local clickSurface = screenGui:FindFirstChild(SCREEN_CLICK_SURFACE_NAME)
+if not clickSurface or not clickSurface:IsA("TextButton") then
+	clickSurface = Instance.new("TextButton")
+	clickSurface.Name = SCREEN_CLICK_SURFACE_NAME
+	clickSurface.Parent = screenGui
 end
 
-local originalSize = clickButton.Size
-local pressedSize = UDim2.fromOffset(math.floor(originalSize.X.Offset * 0.94), math.floor(originalSize.Y.Offset * 0.94))
+clickSurface.AnchorPoint = Vector2.new(0, 0)
+clickSurface.Position = UDim2.fromScale(0, 0)
+clickSurface.Size = UDim2.fromScale(1, 1)
+clickSurface.BackgroundTransparency = 1
+clickSurface.BorderSizePixel = 0
+clickSurface.AutoButtonColor = false
+clickSurface.Active = true
+clickSurface.Modal = false
+clickSurface.Text = ""
+clickSurface.ZIndex = 0
 
-local shrinkTweenInfo = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local expandTweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-
-local function animateButtonPress()
-	local shrinkTween = TweenService:Create(clickButton, shrinkTweenInfo, { Size = pressedSize })
-	local expandTween = TweenService:Create(clickButton, expandTweenInfo, { Size = originalSize })
-
-	shrinkTween:Play()
-	shrinkTween.Completed:Once(function()
-		expandTween:Play()
-	end)
-end
-
-local function spawnFloatingText(text: string, textColor: Color3)
+local function spawnFloatingText(text: string, textColor: Color3, targetPosition: UDim2?)
 	local floatingLabel = Instance.new("TextLabel")
 	floatingLabel.Name = "FloatingClickFeedback"
 	floatingLabel.BackgroundTransparency = 1
 	floatingLabel.BorderSizePixel = 0
 	floatingLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-	floatingLabel.Size = UDim2.fromOffset(180, 42)
-	floatingLabel.Position = UDim2.fromScale(0.5, 0.48)
+	floatingLabel.Size = UDim2.fromOffset(140, 32)
+	floatingLabel.Position = targetPosition or UDim2.fromScale(0.5, 0.48)
 	floatingLabel.Text = text
 	floatingLabel.TextScaled = true
 	floatingLabel.Font = Enum.Font.GothamBold
 	floatingLabel.TextColor3 = textColor
 	floatingLabel.TextStrokeTransparency = 0.5
-	floatingLabel.ZIndex = clickButton.ZIndex + 2
-	floatingLabel.Parent = clickButton
+	floatingLabel.ZIndex = 12
+	floatingLabel.Parent = screenGui
 
 	local riseTween = TweenService:Create(
 		floatingLabel,
 		TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{
-			Position = UDim2.fromScale(0.5, 0.2),
+			Position = UDim2.new(floatingLabel.Position.X.Scale, floatingLabel.Position.X.Offset, floatingLabel.Position.Y.Scale, floatingLabel.Position.Y.Offset - 48),
 			TextTransparency = 1,
 			TextStrokeTransparency = 1,
 		}
@@ -99,13 +88,17 @@ local function spawnFloatingText(text: string, textColor: Color3)
 
 	riseTween:Play()
 	riseTween.Completed:Once(function()
-		floatingLabel:Destroy()
+		if floatingLabel then
+			floatingLabel:Destroy()
+		end
 	end)
 end
 
-clickButton.MouseButton1Click:Connect(function()
-	animateButtonPress()
-	spawnFloatingText("Click!", Color3.fromRGB(230, 240, 255))
+clickSurface.MouseButton1Click:Connect(function()
+	local mousePos = UserInputService:GetMouseLocation()
+	local x = math.clamp(mousePos.X, 32, math.max(32, screenGui.AbsoluteSize.X - 32))
+	local y = math.clamp(mousePos.Y, 32, math.max(32, screenGui.AbsoluteSize.Y - 32))
+	spawnFloatingText("+", Color3.fromRGB(210, 230, 255), UDim2.fromOffset(x, y))
 	playerClickEvent:FireServer()
 end)
 
@@ -116,9 +109,13 @@ playerClickEvent.OnClientEvent:Connect(function(gain: number, isCrit: boolean)
 	end
 
 	local numericGain = (type(gain) == "number") and gain or 0
+	local mousePos = UserInputService:GetMouseLocation()
+	local x = math.clamp(mousePos.X, 40, math.max(40, screenGui.AbsoluteSize.X - 40))
+	local y = math.clamp(mousePos.Y, 40, math.max(40, screenGui.AbsoluteSize.Y - 40))
+	local feedbackPos = UDim2.fromOffset(x, y)
 	if isCrit then
-		spawnFloatingText(string.format("CRIT +%d", numericGain), Color3.fromRGB(255, 220, 90))
+		spawnFloatingText(string.format("CRIT +%s", formatCompact(numericGain)), Color3.fromRGB(255, 220, 90), feedbackPos)
 	else
-		spawnFloatingText(string.format("+%d", numericGain), Color3.fromRGB(180, 255, 180))
+		spawnFloatingText(string.format("+%s", formatCompact(numericGain)), Color3.fromRGB(180, 255, 180), feedbackPos)
 	end
 end)

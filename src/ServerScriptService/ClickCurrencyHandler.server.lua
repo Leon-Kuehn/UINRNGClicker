@@ -54,6 +54,24 @@ local function createPlayerData(player: Player)
 	getOrCreateNumberValue(clickStats, "BaseValue", DEFAULT_BASE_VALUE)
 	getOrCreateNumberValue(clickStats, "CritChance", DEFAULT_CRIT_CHANCE)
 	getOrCreateNumberValue(clickStats, "CritMultiplier", DEFAULT_CRIT_MULTIPLIER)
+	
+	-- Auto-click and passive income tracking
+	local autoClicks = clickStats:FindFirstChild("AutoClicksPerSecond")
+	if not autoClicks then
+		autoClicks = Instance.new("NumberValue")
+		autoClicks.Name = "AutoClicksPerSecond"
+		autoClicks.Value = 0
+		autoClicks.Parent = clickStats
+	end
+	
+	local passiveIncome = clickStats:FindFirstChild("PassiveIncomePerSecond")
+	if not passiveIncome then
+		passiveIncome = Instance.new("NumberValue")
+		passiveIncome.Name = "PassiveIncomePerSecond"
+		passiveIncome.Value = 0
+		passiveIncome.Parent = clickStats
+	end
+
 end
 
 local function calculateGain(player: Player): (number, boolean)
