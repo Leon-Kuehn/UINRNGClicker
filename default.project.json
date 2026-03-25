@@ -2,45 +2,30 @@
   "name": "roblox-ui-rng-clicker",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
       "PlayerClick": {
         "$className": "RemoteEvent"
-      },
-      "Shared": {
-        "$path": "src/shared"
       }
     },
-
     "ServerScriptService": {
       "ClickCurrencyHandler": {
         "$path": "src/ServerScriptService/ClickCurrencyHandler.server.lua"
-      },
-      "InitServer": {
-        "$path": "src/server/main.server.lua"
       }
     },
-
-    "StarterPlayer": {
-      "StarterPlayerScripts": {
-        "InitClient": {
-          "$path": "src/client/main.client.lua"
-        }
-      }
-    },
-
     "StarterGui": {
       "ClickerUI": {
         "$className": "ScreenGui",
         "$properties": {
           "ResetOnSpawn": false,
-          "IgnoreGuiInset": true
+          "IgnoreGuiInset": true,
+          "DisplayOrder": 5
         },
         "ClickButton": {
           "$className": "TextButton",
           "$properties": {
-            "Text": "CLICK",
-            "TextScaled": true
+            "Text": "TAP!",
+            "TextScaled": true,
+            "AutoButtonColor": true
           }
         },
         "CurrencyLabel": {
@@ -51,37 +36,12 @@
             "TextScaled": true
           }
         },
-        "ClickButtonScript": {
+        "ClickButtonLocal": {
           "$path": "src/StarterGui/ClickerUI/ClickButton.client.lua"
         },
-        "CurrencyLabelScript": {
+        "CurrencyLabelLocal": {
           "$path": "src/StarterGui/ClickerUI/CurrencyLabel.client.lua"
         }
-      }
-    },
-
-    "Workspace": {
-      "$properties": {
-        "FilteringEnabled": true
-      },
-      "Baseplate": {
-        "$className": "Part",
-        "$properties": {
-          "Anchored": true
-        }
-      }
-    },
-    "Lighting": {
-      "$properties": {
-        "Brightness": 2,
-        "GlobalShadows": true,
-        "Outlines": false,
-        "Technology": "Voxel"
-      }
-    },
-    "SoundService": {
-      "$properties": {
-        "RespectFilteringEnabled": true
       }
     }
   }
