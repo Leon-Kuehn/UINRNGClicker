@@ -2,31 +2,93 @@
   "name": "roblox-ui-rng-clicker",
   "tree": {
     "$className": "DataModel",
+
     "ReplicatedStorage": {
       "PlayerClick": {
         "$className": "RemoteEvent"
+      },
+      "BuyUpgrade": {
+        "$className": "RemoteEvent"
+      },
+      "UpgradePurchaseResult": {
+        "$className": "RemoteEvent"
+      },
+      "BuyUpgradeRequest": {
+        "$className": "BindableEvent"
+      },
+
+      "Events": {
+        "$className": "Folder",
+        "ClickRequest": {
+          "$className": "RemoteEvent"
+        },
+        "CurrencyUpdated": {
+          "$className": "RemoteEvent"
+        },
+        "RollRequest": {
+          "$className": "RemoteEvent"
+        },
+        "RollResult": {
+          "$className": "RemoteEvent"
+        },
+        "WeaponEquipped": {
+          "$className": "RemoteEvent"
+        },
+        "WorldInteraction": {
+          "$className": "RemoteEvent"
+        }
+      },
+
+      "Modules": {
+        "$className": "Folder",
+        "RarityConfig": {
+          "$path": "src/ReplicatedStorage/Modules/RarityConfig.lua"
+        },
+        "WeaponConfig": {
+          "$path": "src/ReplicatedStorage/Modules/WeaponConfig.lua"
+        },
+        "RNGUtils": {
+          "$path": "src/ReplicatedStorage/Modules/RNGUtils.lua"
+        },
+        "FormatUtils": {
+          "$path": "src/ReplicatedStorage/Modules/FormatUtils.lua"
+        }
       }
     },
+
     "ServerScriptService": {
       "Main": {
         "$path": "src/server/main.server.lua"
       },
-      "ClickCurrencyHandler": {
-        "$path": "src/ServerScriptService/ClickCurrencyHandler.server.lua"
+      "PlayerWeaponManager": {
+        "$path": "src/ServerScriptService/PlayerWeaponManager.server.lua"
+      },
+      "CurrencyManager": {
+        "$path": "src/ServerScriptService/CurrencyManager.server.lua"
+      },
+      "WeaponRNGManager": {
+        "$path": "src/ServerScriptService/WeaponRNGManager.server.lua"
+      },
+      "WorldInteractionManager": {
+        "$path": "src/ServerScriptService/WorldInteractionManager.server.lua"
       },
       "UpgradeSystem": {
         "$path": "src/ServerScriptService/UpgradeSystem.server.lua"
       }
     },
+
     "StarterPlayer": {
-      "StarterCharacterScripts": {
-      },
+      "StarterCharacterScripts": {},
       "StarterPlayerScripts": {
         "CameraController": {
           "$path": "src/client/CameraController.client.lua"
+        },
+        "WorldUIController": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/WorldUIController.client.lua"
         }
       }
     },
+
     "StarterGui": {
       "ClickerUI": {
         "$className": "ScreenGui",
@@ -47,7 +109,7 @@
           "$className": "TextLabel",
           "$properties": {
             "BackgroundTransparency": 1,
-            "Text": "Currency: 0",
+            "Text": "Coins: 0",
             "TextScaled": true
           }
         },
@@ -56,6 +118,27 @@
         },
         "CurrencyLabelLocal": {
           "$path": "src/StarterGui/ClickerUI/CurrencyLabel.client.lua"
+        },
+        "ShopLocal": {
+          "$path": "src/StarterGui/ClickerUI/Shop.client.lua"
+        },
+        "StatsLocal": {
+          "$path": "src/StarterGui/ClickerUI/Stats.client.lua"
+        },
+        "WeaponDisplayLocal": {
+          "$path": "src/StarterGui/ClickerUI/ClickerUI.client.lua"
+        }
+      },
+
+      "RollUI": {
+        "$className": "ScreenGui",
+        "$properties": {
+          "ResetOnSpawn": false,
+          "IgnoreGuiInset": true,
+          "DisplayOrder": 6
+        },
+        "RollUILocal": {
+          "$path": "src/StarterGui/RollUI/RollUI.client.lua"
         }
       }
     }
