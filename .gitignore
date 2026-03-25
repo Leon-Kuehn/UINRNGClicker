@@ -1,8 +1,8 @@
-# Project place file
-/roblox-ui-rng-clicker.rbxlx
+# Roblox place files (build outputs – do not commit)
+*.rbxlx
+*.rbxl
+*.rbxlx.lock
+*.rbxl.lock
 
-# Roblox Studio lock files
-/*.rbxlx.lock
-/*.rbxl.lock
-
+# Rojo sourcemap (generated on rojo serve/build)
 sourcemap.json

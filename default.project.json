@@ -1,62 +1,74 @@
 {
-  "name": "roblox-ui-rng-clicker",
+  "name": "UINRNGClicker",
   "tree": {
     "$className": "DataModel",
+
     "ReplicatedStorage": {
-      "PlayerClick": {
-        "$className": "RemoteEvent"
+      "$ignoreUnknownInstances": true,
+      "Modules": {
+        "$path": "src/ReplicatedStorage/Modules"
+      },
+      "Events": {
+        "$className": "Folder",
+        "PlayerClick":       { "$className": "RemoteEvent" },
+        "RollWeapon":        { "$className": "RemoteEvent" },
+        "EquipWeapon":       { "$className": "RemoteEvent" },
+        "SellWeapon":        { "$className": "RemoteEvent" },
+        "SellSouls":         { "$className": "RemoteEvent" },
+        "UpgradeBackpack":   { "$className": "RemoteEvent" },
+        "UpdateCurrency":    { "$className": "RemoteEvent" },
+        "UpdateInventory":   { "$className": "RemoteEvent" },
+        "UpdateLeaderboard": { "$className": "RemoteEvent" },
+        "EnterZone":         { "$className": "RemoteEvent" }
       }
     },
+
     "ServerScriptService": {
-      "Main": {
-        "$path": "src/server/main.server.lua"
-      },
-      "ClickCurrencyHandler": {
-        "$path": "src/ServerScriptService/ClickCurrencyHandler.server.lua"
-      },
-      "UpgradeSystem": {
-        "$path": "src/ServerScriptService/UpgradeSystem.server.lua"
-      }
+      "$ignoreUnknownInstances": true,
+      "$path": "src/ServerScriptService"
     },
-    "StarterPlayer": {
-      "StarterCharacterScripts": {
-      },
-      "StarterPlayerScripts": {
-        "CameraController": {
-          "$path": "src/client/CameraController.client.lua"
-        }
-      }
-    },
+
     "StarterGui": {
+      "$ignoreUnknownInstances": true,
       "ClickerUI": {
         "$className": "ScreenGui",
         "$properties": {
-          "ResetOnSpawn": false,
-          "IgnoreGuiInset": true,
-          "DisplayOrder": 5
+          "ResetOnSpawn":    false,
+          "IgnoreGuiInset":  true,
+          "DisplayOrder":    1
         },
-        "ClickButton": {
-          "$className": "TextButton",
-          "$properties": {
-            "Text": "TAP!",
-            "TextScaled": true,
-            "AutoButtonColor": true
-          }
-        },
-        "CurrencyLabel": {
-          "$className": "TextLabel",
-          "$properties": {
-            "BackgroundTransparency": 1,
-            "Text": "Currency: 0",
-            "TextScaled": true
-          }
-        },
-        "ClickButtonLocal": {
-          "$path": "src/StarterGui/ClickerUI/ClickButton.client.lua"
-        },
-        "CurrencyLabelLocal": {
-          "$path": "src/StarterGui/ClickerUI/CurrencyLabel.client.lua"
+        "ClickerController": {
+          "$path": "src/StarterGui/ClickerUI/ClickerController.client.luau"
         }
+      },
+      "RollUI": {
+        "$className": "ScreenGui",
+        "$properties": {
+          "ResetOnSpawn":   false,
+          "IgnoreGuiInset": true,
+          "DisplayOrder":   2
+        },
+        "RollController": {
+          "$path": "src/StarterGui/RollUI/RollController.client.luau"
+        }
+      },
+      "LeaderboardUI": {
+        "$className": "ScreenGui",
+        "$properties": {
+          "ResetOnSpawn":   false,
+          "IgnoreGuiInset": true,
+          "DisplayOrder":   3
+        },
+        "LeaderboardController": {
+          "$path": "src/StarterGui/LeaderboardUI/LeaderboardController.client.luau"
+        }
+      }
+    },
+
+    "StarterPlayer": {
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": {
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
       }
     }
   }
